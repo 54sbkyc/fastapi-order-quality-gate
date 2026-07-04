@@ -1,6 +1,9 @@
 .venv/
 *.egg-info/
 .runtime/
+frontend/node_modules/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo
 __pycache__/
 *.py[cod]
 .pytest_cache/

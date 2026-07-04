@@ -27,6 +27,8 @@ app/
 tests/
   api/          # API automation cases
   schemas/      # test-only response validation models
+frontend/
+  src/          # React dashboard frontend
 docs/
   architecture.md
   api.md
@@ -47,14 +49,30 @@ python -m pip install -e ".[dev]"
 Run the API:
 
 ```powershell
-python -m uvicorn app.main:app --reload
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
 ```
 
 Open API docs:
 
 ```text
-http://127.0.0.1:8000/docs
+http://127.0.0.1:8001/docs
 ```
+
+Run the Chinese frontend dashboard:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open frontend:
+
+```text
+http://127.0.0.1:5173
+```
+
+The frontend calls the backend through the Vite proxy, so keep the FastAPI API running on `127.0.0.1:8001` when using the local dashboard.
 
 Run API automation tests:
 
@@ -95,7 +113,7 @@ docker compose up
 The API runs at:
 
 ```text
-http://127.0.0.1:8000
+http://127.0.0.1:8001
 ```
 
 ## Quality Gate
@@ -124,6 +142,12 @@ app coverage: about 95%
 - [Test plan](docs/test-plan.md)
 - [Resume points](docs/resume-points.md)
 
+Frontend concept and verification screenshots:
+
+- [Dashboard concept](docs/assets/frontend-dashboard-concept.png)
+- [Rendered dashboard](docs/assets/frontend-dashboard-render.png)
+- [Mobile dashboard](docs/assets/frontend-dashboard-mobile.png)
+
 ## Seed Products
 
 The system seeds these products when needed:
@@ -147,6 +171,7 @@ The system seeds these products when needed:
 For automation testing internships, emphasize:
 
 - Pytest API automation framework
+- Chinese frontend demo dashboard
 - fixture-based test data management
 - response schema validation
 - database assertions

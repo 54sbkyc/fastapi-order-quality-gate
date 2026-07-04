@@ -4,7 +4,8 @@
 
 ```mermaid
 flowchart LR
-    Client["API Client / Pytest"] --> Routes["FastAPI Routes"]
+    Frontend["React 中文演示后台"] --> Routes["FastAPI Routes"]
+    Client["Pytest API 自动化"] --> Routes
     Routes --> Security["JWT Auth Dependency"]
     Routes --> Schemas["Pydantic Schemas"]
     Routes --> Services["Service Layer"]
@@ -47,8 +48,8 @@ Invalid transitions covered by automated tests:
 ## Why This Design Helps Interviews
 
 - The backend is small enough to explain in a few minutes.
+- The frontend makes the core workflow easier to demonstrate than Swagger alone.
 - The test suite proves business behavior, not only HTTP status codes.
 - Fixtures show test data setup and cleanup ability.
 - Database assertions show that API tests can verify real persistence effects.
 - CI quality gate shows how automation protects code changes before merge.
-
