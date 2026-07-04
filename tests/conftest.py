@@ -81,7 +81,11 @@ def another_auth_headers(client: TestClient) -> dict[str, str]:
 
 
 @pytest.fixture()
-def created_order(client: TestClient, auth_headers: dict[str, str], seed_products: list[Product]) -> dict:
+def created_order(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    seed_products: list[Product],
+) -> dict:
     response = client.post(
         "/api/orders",
         json={"product_id": seed_products[0].id, "quantity": 1},

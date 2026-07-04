@@ -1,5 +1,8 @@
 def test_register_user_success(client):
-    response = client.post("/api/auth/register", json={"username": "alice", "password": "Passw0rd!"})
+    response = client.post(
+        "/api/auth/register",
+        json={"username": "alice", "password": "Passw0rd!"},
+    )
 
     assert response.status_code == 201
     body = response.json()
@@ -34,4 +37,3 @@ def test_protected_api_without_token_returns_unauthorized(client):
 
     assert response.status_code == 401
     assert response.json()["code"] == "NOT_AUTHENTICATED"
-

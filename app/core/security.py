@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from hashlib import pbkdf2_hmac
 from secrets import compare_digest, token_hex
+from typing import Annotated
 
 import jwt
 from fastapi import Depends, status
@@ -13,6 +14,8 @@ from app.db.session import get_db
 from app.models.user import User
 
 bearer_scheme = HTTPBearer(auto_error=False)
+Credentials = Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)]
+DbSession = Annotated[Session, Depends(get_db)]
 
 
 def hash_password(password: str) -> str:
@@ -37,11 +40,15 @@ def create_access_token(user_id: int) -> str:
 
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-    db: Session = Depends(get_db),
+    credentials: Credentials,
+    db: DbSession,
 ) -> User:
     if credentials is None:
-        raise BusinessException("NOT_AUTHENTICATED", "Authentication required", status.HTTP_401_UNAUTHORIZED)
+        raise BusinessException(
+            "NOT_AUTHENTICATED",
+            "Authentication required",
+            status.HTTP_401_UNAUTHORIZED,
+        )
 
     try:
         payload = jwt.decode(
@@ -59,6 +66,9 @@ def get_current_user(
 
     user = db.get(User, user_id)
     if user is None:
-        raise BusinessException("INVALID_TOKEN", "Invalid authentication token", status.HTTP_401_UNAUTHORIZED)
+        raise BusinessException(
+            "INVALID_TOKEN",
+            "Invalid authentication token",
+            status.HTTP_401_UNAUTHORIZED,
+        )
     return user
-

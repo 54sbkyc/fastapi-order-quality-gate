@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 
 from app.models.product import Product
 
-
 DEFAULT_PRODUCTS = [
     {"name": "Keyboard", "price": Decimal("199.00"), "stock": 10, "is_active": True},
     {"name": "Mouse", "price": Decimal("99.00"), "stock": 20, "is_active": True},
