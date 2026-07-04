@@ -15,8 +15,7 @@ def get_product(db: Session, product_id: int) -> Product:
     if product is None:
         raise BusinessException(
             "PRODUCT_NOT_FOUND",
-            "Product not found",
+            "商品不存在",
             status.HTTP_404_NOT_FOUND,
         )
     return product
-

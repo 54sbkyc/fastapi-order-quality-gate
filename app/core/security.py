@@ -46,7 +46,7 @@ def get_current_user(
     if credentials is None:
         raise BusinessException(
             "NOT_AUTHENTICATED",
-            "Authentication required",
+            "请先登录",
             status.HTTP_401_UNAUTHORIZED,
         )
 
@@ -60,7 +60,7 @@ def get_current_user(
     except (jwt.PyJWTError, KeyError, ValueError) as exc:
         raise BusinessException(
             "INVALID_TOKEN",
-            "Invalid authentication token",
+            "登录令牌无效",
             status.HTTP_401_UNAUTHORIZED,
         ) from exc
 
@@ -68,7 +68,7 @@ def get_current_user(
     if user is None:
         raise BusinessException(
             "INVALID_TOKEN",
-            "Invalid authentication token",
+            "登录令牌无效",
             status.HTTP_401_UNAUTHORIZED,
         )
     return user

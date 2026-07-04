@@ -13,7 +13,7 @@ def register_user(db: Session, payload: UserCreate) -> User:
     if existing_user is not None:
         raise BusinessException(
             "USER_ALREADY_EXISTS",
-            "Username already exists",
+            "用户名已存在",
             status.HTTP_409_CONFLICT,
         )
 
@@ -29,8 +29,7 @@ def login_user(db: Session, payload: UserLogin) -> str:
     if user is None or not verify_password(payload.password, user.password_hash):
         raise BusinessException(
             "INVALID_CREDENTIALS",
-            "Invalid username or password",
+            "用户名或密码错误",
             status.HTTP_401_UNAUTHORIZED,
         )
     return create_access_token(user.id)
-

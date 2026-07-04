@@ -21,11 +21,11 @@ def list_user_orders(db: Session, user: User) -> list[Order]:
 def get_user_order(db: Session, user: User, order_id: int) -> Order:
     order = db.get(Order, order_id)
     if order is None:
-        raise BusinessException("ORDER_NOT_FOUND", "Order not found", status.HTTP_404_NOT_FOUND)
+        raise BusinessException("ORDER_NOT_FOUND", "订单不存在", status.HTTP_404_NOT_FOUND)
     if order.user_id != user.id:
         raise BusinessException(
             "FORBIDDEN_ORDER_ACCESS",
-            "Cannot access another user's order",
+            "不能访问其他用户的订单",
             status.HTTP_403_FORBIDDEN,
         )
     return order
@@ -34,13 +34,13 @@ def get_user_order(db: Session, user: User, order_id: int) -> Order:
 def create_order(db: Session, user: User, payload: OrderCreate) -> Order:
     product = db.get(Product, payload.product_id)
     if product is None:
-        raise BusinessException("PRODUCT_NOT_FOUND", "Product not found", status.HTTP_404_NOT_FOUND)
+        raise BusinessException("PRODUCT_NOT_FOUND", "商品不存在", status.HTTP_404_NOT_FOUND)
     if not product.is_active:
-        raise BusinessException("PRODUCT_INACTIVE", "Product is inactive", status.HTTP_409_CONFLICT)
+        raise BusinessException("PRODUCT_INACTIVE", "商品已下架", status.HTTP_409_CONFLICT)
     if product.stock < payload.quantity:
         raise BusinessException(
             "INSUFFICIENT_STOCK",
-            "Insufficient product stock",
+            "商品库存不足",
             status.HTTP_409_CONFLICT,
         )
 
@@ -63,7 +63,7 @@ def pay_order(db: Session, user: User, order_id: int) -> Order:
     if order.status != ORDER_STATUS_CREATED:
         raise BusinessException(
             "INVALID_ORDER_STATE",
-            "Only created orders can be paid",
+            "只有 created 状态的订单可以支付",
             status.HTTP_409_CONFLICT,
         )
 
@@ -78,7 +78,7 @@ def cancel_order(db: Session, user: User, order_id: int) -> Order:
     if order.status != ORDER_STATUS_CREATED:
         raise BusinessException(
             "INVALID_ORDER_STATE",
-            "Only created orders can be cancelled",
+            "只有 created 状态的订单可以取消",
             status.HTTP_409_CONFLICT,
         )
 
@@ -89,4 +89,3 @@ def cancel_order(db: Session, user: User, order_id: int) -> Order:
     db.commit()
     db.refresh(order)
     return order
-
