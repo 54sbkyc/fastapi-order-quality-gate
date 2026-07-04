@@ -6,4 +6,4 @@ class Base(DeclarativeBase):
 
 
 from app.models.user import User  # noqa: E402, F401
-
+from app.models.product import Product  # noqa: E402, F401

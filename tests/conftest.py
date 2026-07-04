@@ -7,8 +7,10 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
+from app.db.seed import seed_products as seed_product_records
 from app.db.session import get_db
 from app.main import create_app
+from app.models.product import Product
 
 
 @pytest.fixture()
@@ -62,3 +64,7 @@ def auth_token(client: TestClient, registered_user: dict[str, str]) -> str:
 def auth_headers(auth_token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {auth_token}"}
 
+
+@pytest.fixture()
+def seed_products(db_session: Session) -> list[Product]:
+    return seed_product_records(db_session)
