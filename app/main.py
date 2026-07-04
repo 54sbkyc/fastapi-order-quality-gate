@@ -4,7 +4,8 @@ from app.api import routes_auth, routes_orders, routes_products
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.db.base import Base
-from app.db.session import engine
+from app.db.seed import seed_products
+from app.db.session import SessionLocal, engine
 
 
 def create_app(init_db: bool = True) -> FastAPI:
@@ -17,6 +18,8 @@ def create_app(init_db: bool = True) -> FastAPI:
 
     if init_db:
         Base.metadata.create_all(bind=engine)
+        with SessionLocal() as db:
+            seed_products(db)
 
     return app
 
