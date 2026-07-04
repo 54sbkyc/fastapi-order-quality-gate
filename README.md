@@ -11,7 +11,8 @@
 - 数据库断言：验证订单落库、库存扣减、取消恢复库存。
 - Pydantic 响应校验：测试中校验接口返回结构。
 - Allure 报告：支持生成自动化测试报告。
-- GitHub Actions：提交后自动执行 lint 和接口测试，测试失败则质量门禁失败。
+- 覆盖率门禁：CI 要求 `app` 包覆盖率不低于 80%。
+- GitHub Actions：提交后自动执行 lint、接口测试和覆盖率检查，失败则质量门禁失败。
 
 ## Project Structure
 
@@ -27,6 +28,7 @@ tests/
   api/          # API automation cases
   schemas/      # test-only response validation models
 docs/
+  architecture.md
   api.md
   test-plan.md
   resume-points.md
@@ -60,6 +62,18 @@ Run API automation tests:
 python -m pytest tests/api -q
 ```
 
+Run test-suite quality checks:
+
+```powershell
+python -m pytest tests/meta -q
+```
+
+Run tests with coverage gate:
+
+```powershell
+python -m pytest tests/api --cov=app --cov-report=term-missing --cov-fail-under=80
+```
+
 Generate Allure raw results:
 
 ```powershell
@@ -90,10 +104,25 @@ The GitHub Actions workflow runs:
 
 ```bash
 python -m ruff check .
-python -m pytest tests/api --alluredir=allure-results
+python -m pytest tests/api --cov=app --cov-report=term-missing --cov-fail-under=80 --alluredir=allure-results
 ```
 
 If any API automation test fails, the workflow fails. This is the CI quality gate.
+
+Current local verification snapshot:
+
+```text
+23 API tests passed
+2 meta tests passed
+app coverage: about 95%
+```
+
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [API documentation](docs/api.md)
+- [Test plan](docs/test-plan.md)
+- [Resume points](docs/resume-points.md)
 
 ## Seed Products
 
@@ -111,6 +140,7 @@ The system seeds these products when needed:
 - Product: list, detail, nonexistent product.
 - Order: create order, insufficient stock, nonexistent product, user isolation.
 - State transitions: pay, cancel, stock restore, double pay, cancelled order cannot be paid.
+- Meta tests: ensure API tests have Allure titles and enough parameterized cases.
 
 ## Resume Positioning
 
@@ -121,6 +151,7 @@ For automation testing internships, emphasize:
 - response schema validation
 - database assertions
 - Allure report
+- coverage quality gate
 - GitHub Actions quality gate
 
 For future backend development roles, emphasize:
@@ -130,4 +161,3 @@ For future backend development roles, emphasize:
 - JWT authentication
 - service-layer business rules
 - automated regression protection
-

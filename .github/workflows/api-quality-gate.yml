@@ -23,7 +23,12 @@ jobs:
         run: python -m ruff check .
 
       - name: Run API tests
-        run: python -m pytest tests/api --alluredir=allure-results
+        run: >
+          python -m pytest tests/api
+          --cov=app
+          --cov-report=term-missing
+          --cov-fail-under=80
+          --alluredir=allure-results
 
       - name: Upload Allure results
         if: always()
@@ -31,4 +36,3 @@ jobs:
         with:
           name: allure-results
           path: allure-results
-

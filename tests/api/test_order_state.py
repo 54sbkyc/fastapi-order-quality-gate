@@ -1,8 +1,15 @@
+import allure
+import pytest
+
 from app.models.order import Order
 
 
+@allure.feature("Order API")
+@allure.story("Order state transition")
+@allure.title("Pay created order successfully")
 def test_pay_created_order_success(client, auth_headers, created_order, db_session):
-    response = client.post(f"/api/orders/{created_order['id']}/pay", headers=auth_headers)
+    with allure.step("Pay created order"):
+        response = client.post(f"/api/orders/{created_order['id']}/pay", headers=auth_headers)
 
     assert response.status_code == 200
     assert response.json()["status"] == "paid"
@@ -10,13 +17,17 @@ def test_pay_created_order_success(client, auth_headers, created_order, db_sessi
     assert db_order.status == "paid"
 
 
+@allure.feature("Order API")
+@allure.story("Order state transition")
+@allure.title("Cancel created order successfully and restore stock")
 def test_cancel_created_order_success_restores_stock(
     client, auth_headers, created_order, seed_products, db_session
 ):
     product = seed_products[0]
     stock_after_create = product.stock
 
-    response = client.post(f"/api/orders/{created_order['id']}/cancel", headers=auth_headers)
+    with allure.step("Cancel created order"):
+        response = client.post(f"/api/orders/{created_order['id']}/cancel", headers=auth_headers)
 
     assert response.status_code == 200
     assert response.json()["status"] == "cancelled"
@@ -24,32 +35,28 @@ def test_cancel_created_order_success_restores_stock(
     assert product.stock == stock_after_create + created_order["quantity"]
 
 
-def test_paid_order_cannot_be_cancelled(client, auth_headers, created_order):
-    pay_response = client.post(f"/api/orders/{created_order['id']}/pay", headers=auth_headers)
-    assert pay_response.status_code == 200
+@allure.feature("Order API")
+@allure.story("Order state transition")
+@allure.title("Reject invalid order state transition")
+@pytest.mark.parametrize(
+    ("first_action", "second_action"),
+    [
+        pytest.param("pay", "cancel", id="paid-order-cannot-be-cancelled"),
+        pytest.param("cancel", "pay", id="cancelled-order-cannot-be-paid"),
+        pytest.param("pay", "pay", id="paid-order-cannot-be-paid-again"),
+    ],
+)
+def test_invalid_order_state_transitions_return_business_error(
+    client, auth_headers, created_order, first_action, second_action
+):
+    order_id = created_order["id"]
 
-    response = client.post(f"/api/orders/{created_order['id']}/cancel", headers=auth_headers)
-
-    assert response.status_code == 409
-    assert response.json()["code"] == "INVALID_ORDER_STATE"
-
-
-def test_cancelled_order_cannot_be_paid(client, auth_headers, created_order):
-    cancel_response = client.post(f"/api/orders/{created_order['id']}/cancel", headers=auth_headers)
-    assert cancel_response.status_code == 200
-
-    response = client.post(f"/api/orders/{created_order['id']}/pay", headers=auth_headers)
-
-    assert response.status_code == 409
-    assert response.json()["code"] == "INVALID_ORDER_STATE"
-
-
-def test_paying_same_order_twice_returns_business_error(client, auth_headers, created_order):
-    first_response = client.post(f"/api/orders/{created_order['id']}/pay", headers=auth_headers)
+    with allure.step("Move order to first state"):
+        first_response = client.post(f"/api/orders/{order_id}/{first_action}", headers=auth_headers)
     assert first_response.status_code == 200
 
-    response = client.post(f"/api/orders/{created_order['id']}/pay", headers=auth_headers)
+    with allure.step("Try invalid second transition"):
+        response = client.post(f"/api/orders/{order_id}/{second_action}", headers=auth_headers)
 
     assert response.status_code == 409
     assert response.json()["code"] == "INVALID_ORDER_STATE"
-

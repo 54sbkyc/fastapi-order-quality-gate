@@ -11,7 +11,7 @@ Resume bullets:
 - 基于 Pytest 搭建订单系统 API 自动化测试框架，覆盖登录、商品查询、订单创建、支付、取消等核心接口。
 - 使用 fixture 管理测试用户、JWT token、商品种子数据和隔离数据库，保证用例可重复执行且互不依赖。
 - 通过参数化思路覆盖正常、异常和状态流转场景，并结合 Pydantic 响应结构校验与 SQLAlchemy 数据库断言验证接口真实落库结果。
-- 集成 Allure 测试报告与 GitHub Actions 质量门禁，实现提交后自动执行 lint 和接口测试，核心用例失败时阻断流水线。
+- 集成 Allure 测试报告、覆盖率统计与 GitHub Actions 质量门禁，实现提交后自动执行 lint 和接口测试，核心用例失败或覆盖率低于阈值时阻断流水线。
 
 Interview talking points:
 
@@ -19,6 +19,7 @@ Interview talking points:
 - 如何用 pytest fixture 降低登录、测试数据准备和清理的重复成本。
 - 如何设计订单状态流转测试，比如 `created -> paid`、`created -> cancelled`、重复支付、已支付取消。
 - CI 质量门禁如何帮助团队在代码合并前发现接口回归。
+- 为什么给 CI 增加覆盖率阈值，以及覆盖率不能替代业务断言。
 
 ## Backend Development Version
 
@@ -39,4 +40,3 @@ Interview talking points:
 - JWT 鉴权如何接入受保护接口。
 - 订单创建为什么要同时创建订单记录并扣减库存。
 - 为什么取消订单要恢复库存，已支付订单不能取消。
-
