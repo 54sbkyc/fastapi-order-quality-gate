@@ -68,3 +68,24 @@ def auth_headers(auth_token: str) -> dict[str, str]:
 @pytest.fixture()
 def seed_products(db_session: Session) -> list[Product]:
     return seed_product_records(db_session)
+
+
+@pytest.fixture()
+def another_auth_headers(client: TestClient) -> dict[str, str]:
+    user = {"username": "other-user", "password": "Passw0rd!"}
+    register_response = client.post("/api/auth/register", json=user)
+    assert register_response.status_code == 201
+    login_response = client.post("/api/auth/login", json=user)
+    assert login_response.status_code == 200
+    return {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+
+@pytest.fixture()
+def created_order(client: TestClient, auth_headers: dict[str, str], seed_products: list[Product]) -> dict:
+    response = client.post(
+        "/api/orders",
+        json={"product_id": seed_products[0].id, "quantity": 1},
+        headers=auth_headers,
+    )
+    assert response.status_code == 201
+    return response.json()
