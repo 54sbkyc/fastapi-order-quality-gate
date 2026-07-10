@@ -3,8 +3,32 @@
 Base URL:
 
 ```text
-http://127.0.0.1:8000
+http://127.0.0.1:8001
 ```
+
+Swagger UI:
+
+```text
+http://127.0.0.1:8001/docs
+```
+
+## System
+
+### Health Check
+
+`GET /api/health`
+
+Response:
+
+```json
+{
+  "status": "ok",
+  "service": "订单系统接口自动化测试项目",
+  "version": "0.1.0"
+}
+```
+
+Use this endpoint for local demo status checks, frontend connectivity checks, and lightweight smoke verification.
 
 ## Authentication
 
@@ -142,4 +166,3 @@ Common business codes:
 - `FORBIDDEN_ORDER_ACCESS`
 - `INVALID_ORDER_STATE`
 - `VALIDATION_ERROR`
-
