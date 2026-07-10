@@ -1,4 +1,4 @@
-import type { ApiError, Order, Product, TokenResponse } from "./types";
+import type { ApiError, Order, Product, QualitySummary, TokenResponse } from "./types";
 
 type RequestOptions = RequestInit & {
   token?: string;
@@ -27,8 +27,19 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
 export async function checkApiStatus(): Promise<number> {
   const startedAt = performance.now();
-  await fetch("/openapi.json");
+  const response = await fetch("/api/health");
+  if (!response.ok) {
+    throw new Error(`健康检查失败：${response.status}`);
+  }
   return Math.round(performance.now() - startedAt);
+}
+
+export async function fetchQualitySummary(): Promise<QualitySummary> {
+  const response = await fetch("/quality-summary.json", { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`质量快照加载失败：${response.status}`);
+  }
+  return response.json() as Promise<QualitySummary>;
 }
 
 export function registerUser(username: string, password: string) {
@@ -74,4 +85,3 @@ export function cancelOrder(orderId: number, token: string) {
     token
   });
 }
-

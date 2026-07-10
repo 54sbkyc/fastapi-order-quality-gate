@@ -29,3 +29,17 @@ export type ApiError = {
   message: string;
 };
 
+export type QualitySummary = {
+  api_tests: {
+    passed: number;
+    failed: number;
+    total: number;
+  };
+  coverage: {
+    line: number;
+    branch: number;
+    threshold: number;
+  };
+  lint_issues: number;
+  gate_status: "passed" | "failed";
+};

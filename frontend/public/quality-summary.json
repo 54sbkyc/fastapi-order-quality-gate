@@ -1,0 +1,14 @@
+{
+  "api_tests": {
+    "passed": 48,
+    "failed": 0,
+    "total": 48
+  },
+  "coverage": {
+    "line": 95.95,
+    "branch": 88.24,
+    "threshold": 80
+  },
+  "lint_issues": 0,
+  "gate_status": "passed"
+}
