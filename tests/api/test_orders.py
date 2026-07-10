@@ -84,6 +84,27 @@ def test_create_order_with_insufficient_stock_returns_business_error(
 
 @allure.feature("Order API")
 @allure.story("Order validation")
+@allure.title("Reject order creation for inactive product")
+def test_create_order_with_inactive_product_returns_business_error(
+    client, auth_headers, seed_products, db_session
+):
+    product = seed_products[0]
+    product.is_active = False
+    db_session.commit()
+
+    with allure.step("Create order for an inactive product"):
+        response = client.post(
+            "/api/orders",
+            json={"product_id": product.id, "quantity": 1},
+            headers=auth_headers,
+        )
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "PRODUCT_INACTIVE"
+
+
+@allure.feature("Order API")
+@allure.story("Order validation")
 @allure.title("Reject invalid order quantity")
 @pytest.mark.parametrize(
     "quantity",
