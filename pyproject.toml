@@ -25,6 +25,11 @@ dev = [
   "ruff>=0.5.0",
 ]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+exclude = ["frontend*", "tests*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers -m 'not e2e'"
