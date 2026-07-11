@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: fastapi-order-quality-gate
+    runtime: docker
+    plan: free
+    branch: main
+    autoDeployTrigger: checksPass
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:////tmp/order_quality_gate.db
+      - key: JWT_SECRET_KEY
+        generateValue: true
