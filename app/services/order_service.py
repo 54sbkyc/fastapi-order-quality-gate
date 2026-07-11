@@ -1,5 +1,5 @@
 from fastapi import status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessException
@@ -37,14 +37,22 @@ def create_order(db: Session, user: User, payload: OrderCreate) -> Order:
         raise BusinessException("PRODUCT_NOT_FOUND", "商品不存在", status.HTTP_404_NOT_FOUND)
     if not product.is_active:
         raise BusinessException("PRODUCT_INACTIVE", "商品已下架", status.HTTP_409_CONFLICT)
-    if product.stock < payload.quantity:
+    stock_update = (
+        update(Product)
+        .where(Product.id == product.id, Product.stock >= payload.quantity)
+        .values(stock=Product.stock - payload.quantity)
+        .execution_options(synchronize_session=False)
+    )
+    result = db.execute(stock_update)
+    if result.rowcount != 1:
+        db.rollback()
         raise BusinessException(
             "INSUFFICIENT_STOCK",
             "商品库存不足",
             status.HTTP_409_CONFLICT,
         )
 
-    product.stock -= payload.quantity
+    db.refresh(product)
     order = Order(
         user_id=user.id,
         product_id=product.id,
@@ -60,14 +68,24 @@ def create_order(db: Session, user: User, payload: OrderCreate) -> Order:
 
 def pay_order(db: Session, user: User, order_id: int) -> Order:
     order = get_user_order(db, user, order_id)
-    if order.status != ORDER_STATUS_CREATED:
+    transition = db.execute(
+        update(Order)
+        .where(
+            Order.id == order.id,
+            Order.user_id == user.id,
+            Order.status == ORDER_STATUS_CREATED,
+        )
+        .values(status=ORDER_STATUS_PAID)
+        .execution_options(synchronize_session=False)
+    )
+    if transition.rowcount != 1:
+        db.rollback()
         raise BusinessException(
             "INVALID_ORDER_STATE",
             "只有 created 状态的订单可以支付",
             status.HTTP_409_CONFLICT,
         )
 
-    order.status = ORDER_STATUS_PAID
     db.commit()
     db.refresh(order)
     return order
@@ -75,17 +93,38 @@ def pay_order(db: Session, user: User, order_id: int) -> Order:
 
 def cancel_order(db: Session, user: User, order_id: int) -> Order:
     order = get_user_order(db, user, order_id)
-    if order.status != ORDER_STATUS_CREATED:
+    transition = db.execute(
+        update(Order)
+        .where(
+            Order.id == order.id,
+            Order.user_id == user.id,
+            Order.status == ORDER_STATUS_CREATED,
+        )
+        .values(status=ORDER_STATUS_CANCELLED)
+        .execution_options(synchronize_session=False)
+    )
+    if transition.rowcount != 1:
+        db.rollback()
         raise BusinessException(
             "INVALID_ORDER_STATE",
             "只有 created 状态的订单可以取消",
             status.HTTP_409_CONFLICT,
         )
 
-    product = db.get(Product, order.product_id)
-    if product is not None:
-        product.stock += order.quantity
-    order.status = ORDER_STATUS_CANCELLED
+    stock_restore = db.execute(
+        update(Product)
+        .where(Product.id == order.product_id)
+        .values(stock=Product.stock + order.quantity)
+        .execution_options(synchronize_session=False)
+    )
+    if stock_restore.rowcount != 1:
+        db.rollback()
+        raise BusinessException(
+            "PRODUCT_NOT_FOUND",
+            "商品不存在",
+            status.HTTP_404_NOT_FOUND,
+        )
+
     db.commit()
     db.refresh(order)
     return order

@@ -25,9 +25,19 @@ dev = [
   "ruff>=0.5.0",
 ]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+exclude = ["frontend*", "tests*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --strict-markers -m 'not e2e'"
+markers = [
+  "e2e: tests that call a running API over real HTTP",
+  "smoke: minimal release-blocking business path",
+  "regression: broader negative and isolation checks",
+]
 filterwarnings = [
   "ignore:Using `httpx` with `starlette.testclient` is deprecated:starlette.exceptions.StarletteDeprecationWarning",
 ]

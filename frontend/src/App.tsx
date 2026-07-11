@@ -17,11 +17,12 @@ import {
   createOrder,
   fetchOrders,
   fetchProducts,
+  fetchQualitySummary,
   loginUser,
   payOrder,
   registerUser
 } from "./api";
-import type { Order, OrderStatus, Product } from "./types";
+import type { Order, OrderStatus, Product, QualitySummary } from "./types";
 
 type Toast = {
   tone: "success" | "error" | "info";
@@ -60,6 +61,7 @@ function App() {
   const [token, setToken] = useState(() => localStorage.getItem("order-demo-token") || "");
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [orderFilter, setOrderFilter] = useState<"all" | OrderStatus>("all");
   const [selectedProductId, setSelectedProductId] = useState<number | "">("");
   const [quantity, setQuantity] = useState(1);
   const [apiOnline, setApiOnline] = useState(false);
@@ -69,16 +71,31 @@ function App() {
     text: "等待接口状态检查"
   });
   const [busy, setBusy] = useState(false);
+  const [qualitySummary, setQualitySummary] = useState<QualitySummary | null>(null);
 
   const productById = useMemo(() => {
     return new Map(products.map((product) => [product.id, product]));
   }, [products]);
+
+  const visibleOrders = useMemo(() => {
+    return orderFilter === "all"
+      ? orders
+      : orders.filter((order) => order.status === orderFilter);
+  }, [orderFilter, orders]);
 
   async function refreshAll() {
     try {
       const ms = await checkApiStatus();
       setApiOnline(true);
       setResponseTime(ms);
+    } catch (error) {
+      setApiOnline(false);
+      setResponseTime(null);
+      setToast({ tone: "error", text: error instanceof Error ? error.message : "接口连接失败" });
+      return;
+    }
+
+    try {
       const productList = await fetchProducts();
       setProducts(productList);
       setSelectedProductId((current) => current || productList[0]?.id || "");
@@ -87,8 +104,13 @@ function App() {
       }
       setToast({ tone: "success", text: "接口数据已刷新" });
     } catch (error) {
-      setApiOnline(false);
-      setToast({ tone: "error", text: error instanceof Error ? error.message : "接口连接失败" });
+      setToast({ tone: "error", text: error instanceof Error ? error.message : "数据刷新失败" });
+    }
+
+    try {
+      setQualitySummary(await fetchQualitySummary());
+    } catch {
+      setQualitySummary(null);
     }
   }
 
@@ -348,12 +370,22 @@ function App() {
             <div className="panel-heading">
               <h2>订单管理</h2>
               <div className="filter-tabs">
-                <button className="selected" type="button">
-                  全部
-                </button>
-                <button type="button">待支付</button>
-                <button type="button">已支付</button>
-                <button type="button">已取消</button>
+                {([
+                  ["all", "全部"],
+                  ["created", "待支付"],
+                  ["paid", "已支付"],
+                  ["cancelled", "已取消"]
+                ] as const).map(([value, label]) => (
+                  <button
+                    aria-pressed={orderFilter === value}
+                    className={orderFilter === value ? "selected" : ""}
+                    key={value}
+                    onClick={() => setOrderFilter(value)}
+                    type="button"
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
             <div className="table-wrap">
@@ -370,14 +402,14 @@ function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.length === 0 ? (
+                  {visibleOrders.length === 0 ? (
                     <tr>
                       <td className="empty-row" colSpan={7}>
-                        登录后可查看当前用户订单
+                        {orders.length === 0 ? "登录后可查看当前用户订单" : "当前筛选条件下暂无订单"}
                       </td>
                     </tr>
                   ) : (
-                    orders.map((order) => {
+                    visibleOrders.map((order) => {
                       const product = productById.get(order.product_id);
                       return (
                         <tr key={order.id}>
@@ -395,10 +427,10 @@ function App() {
                             <div className="row-actions">
                               {order.status === "created" && (
                                 <>
-                                  <button type="button" onClick={() => handleOrderAction(order.id, "pay")}>
+                                  <button disabled={busy} type="button" onClick={() => handleOrderAction(order.id, "pay")}>
                                     去支付
                                   </button>
-                                  <button type="button" onClick={() => handleOrderAction(order.id, "cancel")}>
+                                  <button disabled={busy} type="button" onClick={() => handleOrderAction(order.id, "cancel")}>
                                     取消订单
                                   </button>
                                 </>
@@ -418,12 +450,30 @@ function App() {
           <aside className="panel quality-panel" id="quality">
             <div className="panel-heading">
               <h2>质量门禁</h2>
-              <span className="status-badge paid">已启用</span>
+              <span className={`status-badge ${qualitySummary?.gate_status === "failed" ? "cancelled" : "paid"}`}>
+                {qualitySummary ? (qualitySummary.gate_status === "passed" ? "已通过" : "未通过") : "加载中"}
+              </span>
             </div>
-            <Metric title="Pytest 结果" value="23 / 23" meta="通过用例" />
-            <Metric title="代码覆盖率" value="94.69%" meta="目标 ≥ 80%" />
-            <Metric title="Ruff 代码检查" value="0" meta="个问题" />
-            <Metric title="CI 门禁状态" value="通过" meta="所有检查已通过" />
+            <Metric
+              title="Pytest 结果"
+              value={qualitySummary ? `${qualitySummary.api_tests.passed} / ${qualitySummary.api_tests.total}` : "--"}
+              meta="通过用例"
+            />
+            <Metric
+              title="行覆盖率"
+              value={qualitySummary ? `${qualitySummary.coverage.line.toFixed(2)}%` : "--"}
+              meta={`目标 ≥ ${qualitySummary?.coverage.threshold ?? 80}%`}
+            />
+            <Metric
+              title="分支覆盖率"
+              value={qualitySummary ? `${qualitySummary.coverage.branch.toFixed(2)}%` : "--"}
+              meta="条件分支"
+            />
+            <Metric
+              title="Ruff 代码检查"
+              value={qualitySummary ? String(qualitySummary.lint_issues) : "--"}
+              meta="个问题"
+            />
           </aside>
         </section>
       </main>

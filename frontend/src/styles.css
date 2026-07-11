@@ -349,7 +349,14 @@ table {
 }
 
 .products-panel table {
-  min-width: 500px;
+  min-width: 360px;
+  table-layout: fixed;
+}
+
+.products-panel th,
+.products-panel td {
+  padding: 0 5px;
+  font-size: 12px;
 }
 
 th,
