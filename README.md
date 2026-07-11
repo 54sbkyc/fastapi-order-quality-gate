@@ -265,6 +265,8 @@ python -m pytest tests/api --cov=app --cov-report=term-missing --cov-report=xml:
 python scripts/write_allure_metadata.py
 python scripts/build_quality_snapshot.py
 python -m pytest tests/meta
+docker build --tag order-quality-gate:ci .
+# 启动生产容器后：
 API_BASE_URL=http://127.0.0.1:8001 python -m pytest tests/e2e -m e2e --alluredir=allure-e2e-results
 cd frontend && npm ci && npm run build && npm run ui:smoke
 ```
@@ -309,14 +311,44 @@ UI smoke passed
 ## Docker Compose
 
 ```powershell
-docker compose up
+docker compose up --build
 ```
 
-API 运行地址：
+同一个容器会运行 FastAPI 并托管构建后的 React 前端：
 
 ```text
-http://127.0.0.1:8001
+前端：http://127.0.0.1:8001
+Swagger：http://127.0.0.1:8001/docs
+健康检查：http://127.0.0.1:8001/api/health
 ```
+
+Compose 使用 `order-data` 命名卷保存本地 SQLite 数据。删除该卷会重置演示数据：
+
+```powershell
+docker compose down -v
+```
+
+## 公网测试环境
+
+仓库根目录的 `render.yaml` 用于创建 Render 免费 Web Service。部署采用多阶段
+`Dockerfile`：Node 阶段只负责构建 React，最终 Python 镜像以非 root 用户运行
+FastAPI，并在同一个公网域名下提供前端、Swagger 和 API。
+
+1. 在 Render Dashboard 选择 `New > Blueprint`，连接此 GitHub 仓库。
+2. 确认服务计划为 `Free`，然后应用 Blueprint。
+3. 部署完成后打开 Render 分配的 `https://<service>.onrender.com` 地址。
+4. 在 GitHub Actions 手动运行 `Remote API Smoke`，把这个公网地址填入
+   `api_base_url`，工作流会唤醒服务并执行真实 HTTP 主链路测试。
+
+也可以直接从本地验证公网环境：
+
+```powershell
+.\scripts\api-e2e.ps1 -BaseUrl "https://<service>.onrender.com" -Marker smoke -TimeoutSeconds 20
+```
+
+免费实例适合作为可重复初始化的测试环境，不用于保存业务数据：闲置后服务会休眠，
+休眠、重启或重新部署会清空本地 SQLite。应用启动时会重新建表并补齐演示商品，
+远程 smoke 每次使用随机账号并取消测试订单，因此不依赖历史数据。
 
 ## 文档
 

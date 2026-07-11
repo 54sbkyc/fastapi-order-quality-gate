@@ -1,11 +1,24 @@
 services:
   api:
-    image: python:3.12-slim
-    working_dir: /app
-    volumes:
-      - .:/app
+    build:
+      context: .
+    environment:
+      DATABASE_URL: sqlite:////data/order_quality_gate.db
+      JWT_SECRET_KEY: local-docker-secret-change-before-public-use
     ports:
       - "8001:8001"
-    command: >
-      sh -c "python -m pip install -e . &&
-             python -m uvicorn app.main:app --host 0.0.0.0 --port 8001"
+    volumes:
+      - order-data:/data
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/health', timeout=3)
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  order-data:

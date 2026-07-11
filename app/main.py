@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.api import routes_auth, routes_health, routes_orders, routes_products
 from app.core.config import settings
@@ -8,6 +10,8 @@ from app.core.exceptions import register_exception_handlers
 from app.db.base import Base
 from app.db.seed import seed_products
 from app.db.session import SessionLocal, engine
+
+FRONTEND_DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"
 
 
 def create_app(init_db: bool = True) -> FastAPI:
@@ -37,6 +41,9 @@ def create_app(init_db: bool = True) -> FastAPI:
     app.include_router(routes_auth.router)
     app.include_router(routes_products.router)
     app.include_router(routes_orders.router)
+
+    if FRONTEND_DIST.is_dir():
+        app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
 
     return app
 
