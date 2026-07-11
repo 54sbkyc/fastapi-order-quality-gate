@@ -1,0 +1,63 @@
+name: Remote API Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: Public API base URL, for example https://example.onrender.com
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: remote-api-smoke
+  cancel-in-progress: false
+
+jobs:
+  remote-smoke:
+    runs-on: ubuntu-latest
+    env:
+      API_BASE_URL: ${{ inputs.api_base_url }}
+      API_TIMEOUT_SECONDS: "20"
+      API_TRUST_ENV: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Wake service and wait for health check
+        shell: bash
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error --max-time 20 \
+              "${API_BASE_URL%/}/api/health" > /dev/null; then
+              echo "Remote API is ready: ${API_BASE_URL%/}"
+              exit 0
+            fi
+            echo "Waiting for remote API (${attempt}/30)..."
+            sleep 5
+          done
+          echo "Remote API did not become healthy within the timeout."
+          exit 1
+
+      - name: Run remote API smoke tests
+        run: >
+          python -m pytest tests/e2e -m smoke
+          --alluredir=allure-remote-results
+
+      - name: Upload remote smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: remote-api-smoke-results
+          path: allure-remote-results
+          if-no-files-found: warn

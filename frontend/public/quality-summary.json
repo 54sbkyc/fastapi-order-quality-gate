@@ -5,8 +5,8 @@
     "total": 48
   },
   "coverage": {
-    "line": 95.95,
-    "branch": 88.24,
+    "line": 96.0,
+    "branch": 86.11,
     "threshold": 80
   },
   "lint_issues": 0,

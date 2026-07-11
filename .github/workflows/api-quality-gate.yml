@@ -41,13 +41,24 @@ jobs:
       - name: Run test-suite quality checks
         run: python -m pytest tests/meta
 
-      - name: Run live HTTP API tests
+      - name: Build production container
+        run: docker build --tag order-quality-gate:ci .
+
+      - name: Run live HTTP API tests against production container
         shell: bash
         run: |
           rm -rf allure-e2e-results
-          python -m uvicorn app.main:app --host 127.0.0.1 --port 8001 > api-e2e-backend.log 2>&1 &
-          BACKEND_PID=$!
-          trap 'kill $BACKEND_PID 2>/dev/null || true' EXIT
+          CONTAINER_ID=$(docker run --detach --rm \
+            --publish 8001:8001 \
+            --env JWT_SECRET_KEY=ci-only-secret-key-at-least-32-bytes \
+            --env DATABASE_URL=sqlite:////tmp/order-quality-gate-ci.db \
+            order-quality-gate:ci)
+
+          cleanup() {
+            docker logs "$CONTAINER_ID" > api-e2e-backend.log 2>&1 || true
+            docker stop "$CONTAINER_ID" > /dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
 
           for attempt in {1..30}; do
             if curl --noproxy '*' --fail --silent http://127.0.0.1:8001/api/health > /dev/null; then
@@ -57,6 +68,7 @@ jobs:
           done
 
           curl --noproxy '*' --fail --silent http://127.0.0.1:8001/api/health > /dev/null
+          curl --noproxy '*' --fail --silent http://127.0.0.1:8001/ > /dev/null
           API_BASE_URL=http://127.0.0.1:8001 \
           API_TRUST_ENV=false \
           python -m pytest tests/e2e -m e2e --alluredir=allure-e2e-results
