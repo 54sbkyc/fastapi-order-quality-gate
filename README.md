@@ -4,6 +4,15 @@
 
 项目重点不是“写了几个接口”，而是建立可落地的双层测试：进程内集成测试快速验证业务和数据库副作用，真实 HTTP 黑盒测试通过 `API_BASE_URL` 验证已经运行或部署的服务。两层测试都进入 GitHub Actions，并保留 Allure、覆盖率和服务日志等失败证据。
 
+## 在线验证
+
+- [中文演示后台](https://fastapi-order-quality-gate.onrender.com)
+- [Swagger 接口文档](https://fastapi-order-quality-gate.onrender.com/docs)
+- [健康检查](https://fastapi-order-quality-gate.onrender.com/api/health)
+- [GitHub Actions 公网 Smoke 记录](https://github.com/54sbkyc/fastapi-order-quality-gate/actions/runs/29754290597)
+
+公网地址运行在 Render 免费测试环境，闲置后首次访问可能需要等待服务唤醒。演示数据允许重置，不作为生产数据保存。
+
 ## 实用型测试分层
 
 | 层级 | 入口 | 解决的问题 |
