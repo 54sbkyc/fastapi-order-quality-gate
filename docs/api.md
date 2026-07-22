@@ -102,6 +102,12 @@ Returns `PRODUCT_NOT_FOUND` when the product does not exist.
 
 `POST /api/orders`
 
+Optional request header:
+
+```http
+Idempotency-Key: order-checkout-20260722-0001
+```
+
 Request:
 
 ```json
@@ -118,6 +124,11 @@ Rules:
 - Product must be active.
 - Stock must be enough.
 - Creating an order decreases stock.
+- `Idempotency-Key` must be 8-64 characters and can contain letters, numbers, `.`, `_`, `:`, `-`.
+- The first request returns `201` and `Idempotency-Replayed: false`.
+- Retrying the same user, key, and payload returns the original order with `200` and `Idempotency-Replayed: true`; stock is not deducted again.
+- Reusing the same key with a different product or quantity returns `409 IDEMPOTENCY_KEY_CONFLICT`.
+- Idempotency keys are scoped by user, so two users may use the same key independently.
 
 ### List My Orders
 
@@ -162,6 +173,7 @@ Common business codes:
 - `PRODUCT_NOT_FOUND`
 - `PRODUCT_INACTIVE`
 - `INSUFFICIENT_STOCK`
+- `IDEMPOTENCY_KEY_CONFLICT`
 - `ORDER_NOT_FOUND`
 - `FORBIDDEN_ORDER_ACCESS`
 - `INVALID_ORDER_STATE`

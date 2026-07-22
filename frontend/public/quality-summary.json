@@ -1,12 +1,12 @@
 {
   "api_tests": {
-    "passed": 48,
+    "passed": 55,
     "failed": 0,
-    "total": 48
+    "total": 55
   },
   "coverage": {
-    "line": 96.0,
-    "branch": 86.11,
+    "line": 96.03,
+    "branch": 84.62,
     "threshold": 80
   },
   "lint_issues": 0,

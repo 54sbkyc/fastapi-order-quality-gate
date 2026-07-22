@@ -54,6 +54,22 @@ Invalid transitions covered by automated tests:
 - `paid -> paid`
 - concurrent `cancel -> cancel`
 
+## Idempotent Order Creation
+
+```mermaid
+flowchart TD
+    Request["POST /api/orders + Idempotency-Key"] --> Lookup{"同一用户的键已存在?"}
+    Lookup -->|"是，参数相同"| Replay["返回原订单 200 + replayed=true"]
+    Lookup -->|"是，参数不同"| Conflict["返回 409 IDEMPOTENCY_KEY_CONFLICT"]
+    Lookup -->|"否"| Stock["条件更新原子扣减库存"]
+    Stock --> Transaction["同一事务写订单和幂等记录"]
+    Transaction --> Created["返回 201 + replayed=false"]
+    Transaction -->|"唯一键竞争"| Rollback["回滚重复库存扣减"]
+    Rollback --> Replay
+```
+
+幂等记录使用 `(user_id, idempotency_key)` 唯一约束。单独建表让现有 SQLite 数据卷可以通过 `create_all` 增量创建新表，同时避免修改已有订单表结构。
+
 ## Why This Design Helps Interviews
 
 - The backend is small enough to explain in a few minutes.
@@ -62,5 +78,6 @@ Invalid transitions covered by automated tests:
 - The test suite proves business behavior, not only HTTP status codes.
 - Fixtures show test data setup and cleanup ability.
 - Database assertions show that API tests can verify real persistence effects.
+- Idempotent retries show how network failure, database constraints, and transaction rollback are tested together.
 - Application startup uses FastAPI lifespan, so importing modules does not create database files as a side effect.
 - CI quality gate protects backend behavior, test-suite quality, frontend build stability, and the browser demo path before merge.

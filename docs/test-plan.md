@@ -14,6 +14,7 @@ In scope:
 - Authentication negative and token failure scenarios
 - Product query API
 - Order creation API
+- Idempotent order retry and duplicate-side-effect prevention
 - Order query API
 - Order payment and cancellation state transitions
 - Concurrent order cancellation consistency
@@ -78,6 +79,10 @@ Core fixture responsibilities:
 | Product | Get product detail | Response schema and product identity |
 | Product | Get nonexistent product with multiple invalid IDs | `PRODUCT_NOT_FOUND` |
 | Order | Create order successfully | API response, DB order, stock decrease |
+| Order | Retry same `Idempotency-Key` and payload | Same order returned, one DB order, stock deducted once, replay header is `true` |
+| Order | Reuse idempotency key with different payload | `IDEMPOTENCY_KEY_CONFLICT`, no second order or stock deduction |
+| Order | Two users reuse the same idempotency key | Keys are isolated by user and both users can create their own order |
+| Order | Unique-key race during order retry | Duplicate transaction rolls back and replays the committed order |
 | Order | Create order without login | `NOT_AUTHENTICATED` |
 | Order | Product not found | `PRODUCT_NOT_FOUND` |
 | Order | Insufficient stock | `INSUFFICIENT_STOCK` |
@@ -100,6 +105,7 @@ Core fixture responsibilities:
 | Live HTTP smoke | Register, login, query product, create/query/cancel order | Deployed service and stock restoration work through the network |
 | Live HTTP regression | Invalid token | Running service returns `INVALID_TOKEN` |
 | Live HTTP regression | Cross-user order access | Running service returns `FORBIDDEN_ORDER_ACCESS` |
+| Live HTTP regression | Retry order with same idempotency key | Running service returns one order and deducts stock once |
 | Frontend | Production build | TypeScript and Vite integration |
 | UI smoke | Main demo workflow with Playwright | Page load, API online status, product rendering, auth, order creation/payment, filtering, and generated quality metrics |
 

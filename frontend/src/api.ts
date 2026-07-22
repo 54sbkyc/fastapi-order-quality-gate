@@ -64,12 +64,24 @@ export function fetchOrders(token: string) {
   return request<Order[]>("/api/orders", { token });
 }
 
-export function createOrder(productId: number, quantity: number, token: string) {
-  return request<Order>("/api/orders", {
-    method: "POST",
-    token,
-    body: JSON.stringify({ product_id: productId, quantity })
-  });
+export async function createOrder(productId: number, quantity: number, token: string) {
+  const idempotencyKey = crypto.randomUUID();
+  const send = () =>
+    request<Order>("/api/orders", {
+      method: "POST",
+      token,
+      headers: { "Idempotency-Key": idempotencyKey },
+      body: JSON.stringify({ product_id: productId, quantity })
+    });
+
+  try {
+    return await send();
+  } catch (error) {
+    if (!(error instanceof TypeError)) {
+      throw error;
+    }
+    return send();
+  }
 }
 
 export function payOrder(orderId: number, token: string) {
