@@ -1,0 +1,43 @@
+name: Deploy Render
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Quality Gate"]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: render-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger Render production deploy
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::error::RENDER_DEPLOY_HOOK_URL repository secret is not configured"
+            exit 1
+          fi
+
+          curl \
+            --fail-with-body \
+            --show-error \
+            --silent \
+            --retry 3 \
+            --retry-all-errors \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --request POST \
+            "$RENDER_DEPLOY_HOOK_URL"

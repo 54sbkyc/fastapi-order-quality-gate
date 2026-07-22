@@ -4,7 +4,7 @@ services:
     runtime: docker
     plan: free
     branch: main
-    autoDeployTrigger: checksPass
+    autoDeployTrigger: off
     healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL

@@ -302,7 +302,7 @@ Allure 结果，并发布到 [在线 Allure 报告](https://54sbkyc.github.io/fa
 ```text
 55 API tests passed
 4 live HTTP E2E tests passed
-26 meta tests passed
+27 meta tests passed
 line coverage: 96.03%
 branch coverage: 84.62%
 coverage.xml generated
@@ -357,6 +357,11 @@ FastAPI，并在同一个公网域名下提供前端、Swagger 和 API。
 3. 部署完成后打开 Render 分配的 `https://<service>.onrender.com` 地址。
 4. 仓库变量 `PUBLIC_API_BASE_URL` 保存公网地址；`Remote API Smoke` 每周自动巡检，
    也可以在 GitHub Actions 手动运行并用 `api_base_url` 临时覆盖目标地址。
+
+生产部署不依赖 Render 偶发漏触发的原生 CI 事件。`Deploy Render` 工作流只接受
+`main` 分支成功的 `Quality Gate` push 运行，再通过仓库 Secret
+`RENDER_DEPLOY_HOOK_URL` 触发部署；工作流不检出或执行待部署代码，Hook 也不会写入仓库。
+Render 原生 Auto-Deploy 保持关闭，避免同一提交重复部署。
 
 也可以直接从本地验证公网环境：
 

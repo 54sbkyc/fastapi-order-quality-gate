@@ -25,6 +25,7 @@ In scope:
 - Allure report metadata
 - Allure environment and category metadata
 - Trusted-main Allure report publishing through GitHub Pages
+- Trusted-main Render deployment through a protected deploy hook
 - Coverage threshold
 - Coverage XML report delivery
 - Meta tests for test-suite quality and Chinese API documentation
@@ -102,6 +103,7 @@ Core fixture responsibilities:
 | Meta | README links testing design documents | Interview readiness |
 | Meta | Report delivery wiring remains documented | CI artifacts, `coverage.xml`, and local summary script |
 | Meta | DeepSeek helper remains optional | Script and env docs exist, quality gate does not require `DEEPSEEK_API_KEY` |
+| Delivery | Successful main quality gate triggers Render | Only trusted `main` push runs can use the protected deploy hook; no repository code is checked out |
 | Live HTTP smoke | Register, login, query product, create/query/cancel order | Deployed service and stock restoration work through the network |
 | Live HTTP regression | Invalid token | Running service returns `INVALID_TOKEN` |
 | Live HTTP regression | Cross-user order access | Running service returns `FORBIDDEN_ORDER_ACCESS` |
