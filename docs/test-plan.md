@@ -23,6 +23,7 @@ In scope:
 - Database assertions
 - Allure report metadata
 - Allure environment and category metadata
+- Trusted-main Allure report publishing through GitHub Pages
 - Coverage threshold
 - Coverage XML report delivery
 - Meta tests for test-suite quality and Chinese API documentation
@@ -143,6 +144,11 @@ CI 产物（CI artifacts）preserve evidence after a run:
 - `frontend-dist`: built frontend output after a successful production build.
 - `playwright-report`: browser smoke HTML report.
 - `ui-service-logs`: backend and frontend logs uploaded only after UI smoke failure.
+
+After a successful `push` run on `main`, a separate workflow downloads the API and live HTTP
+Allure artifacts, generates a static report, and deploys it to
+https://54sbkyc.github.io/fastapi-order-quality-gate/. Pull request artifacts are intentionally
+excluded from this report-generation boundary.
 
 Playwright UI smoke runs in CI to protect the browser demo path. Locally it remains optional through `.\scripts\quality-gate.ps1 -UiSmoke`, so the faster API-focused gate is still convenient during development.
 

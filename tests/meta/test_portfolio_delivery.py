@@ -57,7 +57,7 @@ def test_public_deployment_uses_ci_gated_container_and_health_check():
     assert 'cron: "17 2 * * 1"' in workflow
     assert 'actions/checkout@v6' in workflow
     assert 'actions/setup-python@v6' in workflow
-    assert 'actions/upload-artifact@v6' in workflow
+    assert 'actions/upload-artifact@v7' in workflow
     assert 'python -m pytest tests/e2e -m smoke' in workflow
     assert 'docker build --tag order-quality-gate:ci .' in quality_gate
     assert 'order-quality-gate:ci)' in quality_gate
