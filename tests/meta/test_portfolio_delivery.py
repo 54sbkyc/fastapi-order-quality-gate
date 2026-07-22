@@ -53,10 +53,15 @@ def test_public_deployment_uses_ci_gated_container_and_health_check():
     assert 'runtime: docker' in blueprint
     assert 'autoDeployTrigger: checksPass' in blueprint
     assert 'healthCheckPath: /api/health' in blueprint
-    assert 'API_BASE_URL: ${{ inputs.api_base_url }}' in workflow
+    assert 'API_BASE_URL: ${{ inputs.api_base_url || vars.PUBLIC_API_BASE_URL }}' in workflow
+    assert 'cron: "17 2 * * 1"' in workflow
+    assert 'actions/checkout@v6' in workflow
+    assert 'actions/setup-python@v6' in workflow
+    assert 'actions/upload-artifact@v6' in workflow
     assert 'python -m pytest tests/e2e -m smoke' in workflow
     assert 'docker build --tag order-quality-gate:ci .' in quality_gate
     assert 'order-quality-gate:ci)' in quality_gate
+    assert 'actions/setup-node@v6' in quality_gate
 
 
 def test_containerized_app_serves_the_built_frontend():
