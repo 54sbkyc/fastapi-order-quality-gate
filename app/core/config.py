@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "change-me-in-real-projects-with-at-least-32-bytes"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
+    render_git_commit: str = "local"
 
     model_config = SettingsConfigDict(
         env_file=".env",

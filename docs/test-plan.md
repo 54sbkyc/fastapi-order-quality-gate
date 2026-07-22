@@ -26,6 +26,7 @@ In scope:
 - Allure environment and category metadata
 - Trusted-main Allure report publishing through GitHub Pages
 - Trusted-main Render deployment through a protected deploy hook
+- Exact-commit deployment attestation and post-deploy smoke testing
 - Coverage threshold
 - Coverage XML report delivery
 - Meta tests for test-suite quality and Chinese API documentation
@@ -67,7 +68,7 @@ Core fixture responsibilities:
 | Contract | OpenAPI Chinese docs | Core summaries and descriptions remain Chinese |
 | Contract | Business response codes | Important `201`, `401`, `403`, `404`, `409`, `422` responses are documented |
 | Contract | Error response schema | Reusable `{code, message}` error response contract |
-| System | Health check | Service status and version metadata |
+| System | Health check | Service status, version, and running Git commit metadata |
 | Auth | Register user successfully | Status code and response body |
 | Auth | Register duplicate username | `USER_ALREADY_EXISTS` |
 | Auth | Login successfully | JWT token response |
@@ -103,7 +104,9 @@ Core fixture responsibilities:
 | Meta | README links testing design documents | Interview readiness |
 | Meta | Report delivery wiring remains documented | CI artifacts, `coverage.xml`, and local summary script |
 | Meta | DeepSeek helper remains optional | Script and env docs exist, quality gate does not require `DEEPSEEK_API_KEY` |
-| Delivery | Successful main quality gate triggers Render | Only trusted `main` push runs can use the protected deploy hook; no repository code is checked out |
+| Delivery | Successful main quality gate triggers Render | Only trusted `main` push runs can use the protected deploy hook |
+| Delivery | Expected commit becomes live | Health metadata must match the tested full Git SHA before post-deploy tests run |
+| Delivery | Post-deploy smoke | The exact tested commit is checked out and the public order lifecycle passes over real HTTP |
 | Live HTTP smoke | Register, login, query product, create/query/cancel order | Deployed service and stock restoration work through the network |
 | Live HTTP regression | Invalid token | Running service returns `INVALID_TOKEN` |
 | Live HTTP regression | Cross-user order access | Running service returns `FORBIDDEN_ORDER_ACCESS` |
@@ -152,6 +155,7 @@ CI 产物（CI artifacts）preserve evidence after a run:
 - `frontend-dist`: built frontend output after a successful production build.
 - `playwright-report`: browser smoke HTML report.
 - `ui-service-logs`: backend and frontend logs uploaded only after UI smoke failure.
+- `render-post-deploy-smoke-*`: Allure evidence from the public smoke test that runs after exact-commit deployment attestation.
 
 After a successful `push` run on `main`, a separate workflow downloads the API and live HTTP
 Allure artifacts, generates a static report, and deploys it to
@@ -159,5 +163,9 @@ https://54sbkyc.github.io/fastapi-order-quality-gate/. Pull request artifacts ar
 excluded from this report-generation boundary.
 
 Playwright UI smoke runs in CI to protect the browser demo path. Locally it remains optional through `.\scripts\quality-gate.ps1 -UiSmoke`, so the faster API-focused gate is still convenient during development.
+
+After a successful trusted-main quality gate, `Deploy Render` triggers the protected deploy hook,
+waits until `/api/health` reports the expected `RENDER_GIT_COMMIT`, checks out that exact tested
+commit, and runs the public `smoke` path. A hook response alone is not treated as deployment success.
 
 DeepSeek is also kept outside the deterministic quality gate. `scripts/generate-test-ideas.py` can read the local OpenAPI contract and ask DeepSeek for test ideas when `DEEPSEEK_API_KEY` is configured, but generated ideas must be reviewed and converted into Pytest cases manually.

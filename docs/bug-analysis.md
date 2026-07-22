@@ -203,9 +203,9 @@
 
 - 关闭 Render 原生 Auto-Deploy，避免依赖偶发漏失的外部 CI 完成事件。
 - 独立 `Deploy Render` 工作流只接受成功的主分支 Quality Gate，再调用受保护的 Deploy Hook。
-- 工作流不 checkout 仓库代码，PR 事件和非主分支 push 都不能读取生产 Secret。
-- meta 测试固定工作流的分支、事件、成功状态和无 checkout 边界。
-- 部署后继续用公网 OpenAPI、质量快照和真实 HTTP E2E 验收，而不是只看部署按钮变绿。
+- PR 事件和非主分支 push 都不能读取生产 Secret；部署后只检出已通过门禁的精确主分支提交。
+- meta 测试固定工作流的分支、事件、成功状态、目标提交核对和精确 checkout 边界。
+- 健康检查暴露 Render 注入的 Git SHA，工作流必须确认目标提交真正上线，再执行公网 smoke 并保留 Allure 证据，而不是只看部署按钮变绿。
 
 ## 面试讲法
 

@@ -34,7 +34,7 @@
 - 会搭测试框架：使用 fixture 管理用户、JWT token、隔离数据库和真实环境 API Client，并支持 `smoke`、`regression`、`e2e` 分组。
 - 会做负向测试：覆盖重复注册、伪造 token、过期 token、不存在用户 token 等认证失败场景。
 - 有质量门禁意识：CI 自动运行 Ruff、接口测试、覆盖率门禁、meta 测试、前端构建和 Playwright 主流程冒烟测试。
-- 能稳定演示：提供中文 Swagger 文档、中文 React 演示后台、`/api/health` 健康检查接口，以及由真实测试产物生成的质量看板。
+- 能稳定演示：提供中文 Swagger 文档、中文 React 演示后台、带部署提交号的 `/api/health` 健康检查接口，以及由真实测试产物生成的质量看板。
 - 能测试真实环境：通过 `API_BASE_URL`、超时和代理开关切换本地、测试或预发布环境，CI 强制执行黑盒验收。
 
 ## 2 分钟演示路径
@@ -300,10 +300,10 @@ Allure 结果，并发布到 [在线 Allure 报告](https://54sbkyc.github.io/fa
 当前本地验证快照：
 
 ```text
-55 API tests passed
+57 API tests passed
 4 live HTTP E2E tests passed
 27 meta tests passed
-line coverage: 96.03%
+line coverage: 96.04%
 branch coverage: 84.62%
 coverage.xml generated
 quality-summary.json generated from current test artifacts
@@ -320,7 +320,7 @@ UI smoke passed
 - Inventory: 两个陈旧会话同时购买最后一件库存时，只允许一个订单成功，避免超卖。
 - Idempotency: 同一用户、同一键和同一参数只创建一个订单且只扣一次库存；同一键参数冲突返回 `409`；并发唯一键冲突会回滚重复副作用。
 - State transitions: 支付、取消、取消恢复库存、重复支付、已取消订单不能支付，以及并发取消只能恢复一次库存。
-- System: 健康检查接口返回服务状态和版本信息。
+- System: 健康检查接口返回服务状态、版本和当前部署提交号，支持 CI 核对目标版本是否真正上线。
 - Contract: OpenAPI 契约测试保护核心路径、中文接口文档、业务响应码、幂等请求头和 `{code, message}` 错误结构。
 - Live HTTP: 对运行中的服务完成健康检查、注册登录、商品查询、创建/查询/取消订单、幂等重试、库存恢复、非法 Token 和跨用户隔离验证。
 - Meta: API 测试必须有 Allure title，测试套件必须包含参数化用例，OpenAPI 文档保持中文。
@@ -360,8 +360,10 @@ FastAPI，并在同一个公网域名下提供前端、Swagger 和 API。
 
 生产部署不依赖 Render 偶发漏触发的原生 CI 事件。`Deploy Render` 工作流只接受
 `main` 分支成功的 `Quality Gate` push 运行，再通过仓库 Secret
-`RENDER_DEPLOY_HOOK_URL` 触发部署；工作流不检出或执行待部署代码，Hook 也不会写入仓库。
-Render 原生 Auto-Deploy 保持关闭，避免同一提交重复部署。
+`RENDER_DEPLOY_HOOK_URL` 触发部署。工作流会记录已经通过门禁的完整 Git SHA，并轮询
+`/api/health`，直到 Render 运行实例通过 `RENDER_GIT_COMMIT` 返回同一提交；确认目标版本上线后，
+才检出该精确提交并执行公网 `smoke`。PR、失败门禁和非主分支 push 都不能进入部署任务，
+Hook 也不会写入仓库。Render 原生 Auto-Deploy 保持关闭，避免同一提交重复部署。
 
 也可以直接从本地验证公网环境：
 

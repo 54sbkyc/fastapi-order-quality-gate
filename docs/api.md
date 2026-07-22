@@ -24,11 +24,14 @@ Response:
 {
   "status": "ok",
   "service": "订单系统接口自动化测试项目",
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "commit": "local"
 }
 ```
 
-Use this endpoint for local demo status checks, frontend connectivity checks, and lightweight smoke verification.
+Use this endpoint for local demo status checks, frontend connectivity checks, and deployment
+attestation. Local runs return `local`; Render injects the deployed Git SHA through
+`RENDER_GIT_COMMIT` at runtime.
 
 ## Authentication
 

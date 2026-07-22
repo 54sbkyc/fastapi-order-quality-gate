@@ -87,7 +87,11 @@ fixture 负责准备可复用的测试上下文，比如测试客户端、隔离
 
 ### 测试通过后怎么自动部署？
 
-独立的 `Deploy Render` 工作流监听 `Quality Gate` 完成事件，但只接受成功的 `main` 分支 push。它不 checkout 仓库代码，只读取 GitHub Secret 中的 Render Deploy Hook 发起部署，避免不可信 PR 接触生产凭据。Render 原生自动部署关闭，因此失败的门禁不会部署，同一提交也不会被重复触发。
+独立的 `Deploy Render` 工作流监听 `Quality Gate` 完成事件，但只接受成功的 `main` 分支 push。它先通过 GitHub Secret 中的 Render Deploy Hook 发起部署，再轮询 `/api/health` 返回的 `RENDER_GIT_COMMIT`。只有公网运行的提交号与已经通过门禁的完整 Git SHA 一致，才检出这个精确提交并运行真实 HTTP smoke。不可信 PR 接触不到生产凭据，Render 原生自动部署也保持关闭。
+
+### Render 接受 Deploy Hook 就算部署成功吗？
+
+不算。Hook 返回成功只表示平台创建了部署任务，构建仍可能失败，公网也可能继续运行旧版本。因此工作流会等待健康检查报告目标提交号，再执行注册、登录、商品查询、下单和取消的公网 smoke；版本不一致、超时或 smoke 失败都会让部署任务失败。
 
 ### 覆盖率是不是越高越好？
 
