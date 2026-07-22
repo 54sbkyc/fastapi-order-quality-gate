@@ -4,6 +4,7 @@ REQUIRED_FILES = [
     Path("Dockerfile"),
     Path(".dockerignore"),
     Path("render.yaml"),
+    Path(".github/workflows/deploy-render.yml"),
     Path(".github/workflows/remote-api-smoke.yml"),
     Path("scripts/demo-start.ps1"),
     Path("scripts/quality-gate.ps1"),
@@ -51,7 +52,7 @@ def test_public_deployment_uses_ci_gated_container_and_health_check():
     assert "FROM node:22-slim AS frontend-build" in dockerfile
     assert 'USER app' in dockerfile
     assert 'runtime: docker' in blueprint
-    assert 'autoDeployTrigger: checksPass' in blueprint
+    assert 'autoDeployTrigger: off' in blueprint
     assert 'healthCheckPath: /api/health' in blueprint
     assert 'API_BASE_URL: ${{ inputs.api_base_url || vars.PUBLIC_API_BASE_URL }}' in workflow
     assert 'cron: "17 2 * * 1"' in workflow
@@ -62,6 +63,20 @@ def test_public_deployment_uses_ci_gated_container_and_health_check():
     assert 'docker build --tag order-quality-gate:ci .' in quality_gate
     assert 'order-quality-gate:ci)' in quality_gate
     assert 'actions/setup-node@v6' in quality_gate
+
+
+def test_render_deploy_hook_runs_only_after_trusted_main_gate():
+    deploy_workflow = Path(".github/workflows/deploy-render.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'workflows: ["Quality Gate"]' in deploy_workflow
+    assert "github.event.workflow_run.conclusion == 'success'" in deploy_workflow
+    assert "github.event.workflow_run.event == 'push'" in deploy_workflow
+    assert "github.event.workflow_run.head_branch == 'main'" in deploy_workflow
+    assert "secrets.RENDER_DEPLOY_HOOK_URL" in deploy_workflow
+    assert "--request POST" in deploy_workflow
+    assert "actions/checkout" not in deploy_workflow
 
 
 def test_containerized_app_serves_the_built_frontend():
