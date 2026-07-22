@@ -12,6 +12,7 @@
 - [中文演示后台](https://fastapi-order-quality-gate.onrender.com)
 - [Swagger 接口文档](https://fastapi-order-quality-gate.onrender.com/docs)
 - [健康检查](https://fastapi-order-quality-gate.onrender.com/api/health)
+- [在线 Allure 测试报告](https://54sbkyc.github.io/fastapi-order-quality-gate/)
 - [GitHub Actions 公网 Smoke 记录](https://github.com/54sbkyc/fastapi-order-quality-gate/actions/workflows/remote-api-smoke.yml)
 
 公网地址运行在 Render 免费测试环境，闲置后首次访问可能需要等待服务唤醒。演示数据允许重置，不作为生产数据保存。
@@ -291,6 +292,10 @@ CI 产物（CI artifacts）用于失败后复盘：
 - `frontend-dist`：前端生产构建产物。
 - `playwright-report`：浏览器主链路测试的 HTML 报告。
 - `ui-service-logs`：仅在 UI 冒烟失败时上传的前后端启动日志。
+
+`main` 分支的质量门禁成功后，独立工作流会合并进程内 API 和真实 HTTP
+Allure 结果，并发布到 [在线 Allure 报告](https://54sbkyc.github.io/fastapi-order-quality-gate/)。
+发布工作流不处理 PR 产物，只接受 `main` 分支成功的 `push` 运行。
 
 当前本地验证快照：
 

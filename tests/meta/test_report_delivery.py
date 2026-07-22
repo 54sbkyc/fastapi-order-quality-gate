@@ -48,6 +48,26 @@ def test_ci_uploads_quality_evidence_artifacts() -> None:
     assert "python -m pytest tests/e2e -m e2e" in workflow
 
 
+def test_successful_main_quality_gate_publishes_trusted_allure_report() -> None:
+    workflow = read_text(".github/workflows/publish-allure-report.yml")
+
+    assert 'workflows: ["Quality Gate"]' in workflow
+    assert "github.event.workflow_run.conclusion == 'success'" in workflow
+    assert "github.event.workflow_run.event == 'push'" in workflow
+    assert "github.event.workflow_run.head_branch == 'main'" in workflow
+    assert "actions: read" in workflow
+    assert "pages: write" in workflow
+    assert "id-token: write" in workflow
+    assert "actions/download-artifact@v8" in workflow
+    assert "allure-results" in workflow
+    assert "allure-e2e-results" in workflow
+    assert "allure-commandline@2.43.0" in workflow
+    assert "actions/configure-pages@v6" in workflow
+    assert "actions/upload-pages-artifact@v5" in workflow
+    assert "actions/deploy-pages@v5" in workflow
+    assert "test -s allure-report/index.html" in workflow
+
+
 def test_report_delivery_is_documented() -> None:
     readme = read_text("README.md")
     test_plan = read_text("docs/test-plan.md")
@@ -59,3 +79,4 @@ def test_report_delivery_is_documented() -> None:
     assert "coverage.xml" in combined
     assert "CI artifacts" in combined or "CI 产物" in combined
     assert "scripts/report-summary.py" in combined
+    assert "https://54sbkyc.github.io/fastapi-order-quality-gate/" in combined

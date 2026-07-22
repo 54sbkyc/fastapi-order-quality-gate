@@ -13,6 +13,7 @@ Resume bullets:
 - 封装 `httpx` API Client，支持环境地址、超时和代理配置，使用随机账号和 `finally` 清理订单；失败时向 Allure 附加脱敏请求、响应、状态码与耗时。
 - 通过参数化思路覆盖正常、异常和状态流转场景，并结合 Pydantic 响应结构校验与 SQLAlchemy 数据库断言验证接口真实落库结果。
 - 集成 Allure、`coverage.xml` 与 GitHub Actions 质量门禁，自动执行 48 条集成测试、3 条真实 HTTP 验收、meta 检查、前端构建和 Playwright 冒烟，核心链路失败或覆盖率低于 80% 时阻断流水线。
+- 将主分支成功的 API 与真实 HTTP Allure 产物合并后自动发布到 GitHub Pages，并限制报告生成器只处理可信主分支运行。
 - 设计质量快照与报告摘要脚本，从本次 Allure 和覆盖率产物动态生成前端指标，并在 CI artifacts 中保留接口、覆盖率、构建和 UI 报告，避免历史结果累积或手工数字失真。
 - 接入 DeepSeek 本地测试建议生成脚本，根据 OpenAPI 契约生成候选测试点；AI 仅辅助设计，最终通过 Pytest 用例进入确定性质量门禁。
 
