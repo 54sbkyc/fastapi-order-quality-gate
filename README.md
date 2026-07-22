@@ -1,5 +1,8 @@
 # FastAPI 订单系统接口自动化测试与质量门禁
 
+[![Quality Gate](https://github.com/54sbkyc/fastapi-order-quality-gate/actions/workflows/api-quality-gate.yml/badge.svg)](https://github.com/54sbkyc/fastapi-order-quality-gate/actions/workflows/api-quality-gate.yml)
+[![Remote API Smoke](https://github.com/54sbkyc/fastapi-order-quality-gate/actions/workflows/remote-api-smoke.yml/badge.svg)](https://github.com/54sbkyc/fastapi-order-quality-gate/actions/workflows/remote-api-smoke.yml)
+
 这是一个面向自动化测试实习求职的简历项目：自己开发一个小型 FastAPI 订单系统，再用 Pytest 搭建接口自动化测试框架，并接入 GitHub Actions 质量门禁。
 
 项目重点不是“写了几个接口”，而是建立可落地的双层测试：进程内集成测试快速验证业务和数据库副作用，真实 HTTP 黑盒测试通过 `API_BASE_URL` 验证已经运行或部署的服务。两层测试都进入 GitHub Actions，并保留 Allure、覆盖率和服务日志等失败证据。
@@ -9,7 +12,7 @@
 - [中文演示后台](https://fastapi-order-quality-gate.onrender.com)
 - [Swagger 接口文档](https://fastapi-order-quality-gate.onrender.com/docs)
 - [健康检查](https://fastapi-order-quality-gate.onrender.com/api/health)
-- [GitHub Actions 公网 Smoke 记录](https://github.com/54sbkyc/fastapi-order-quality-gate/actions/runs/29754290597)
+- [GitHub Actions 公网 Smoke 记录](https://github.com/54sbkyc/fastapi-order-quality-gate/actions/workflows/remote-api-smoke.yml)
 
 公网地址运行在 Render 免费测试环境，闲置后首次访问可能需要等待服务唤醒。演示数据允许重置，不作为生产数据保存。
 
@@ -346,8 +349,8 @@ FastAPI，并在同一个公网域名下提供前端、Swagger 和 API。
 1. 在 Render Dashboard 选择 `New > Blueprint`，连接此 GitHub 仓库。
 2. 确认服务计划为 `Free`，然后应用 Blueprint。
 3. 部署完成后打开 Render 分配的 `https://<service>.onrender.com` 地址。
-4. 在 GitHub Actions 手动运行 `Remote API Smoke`，把这个公网地址填入
-   `api_base_url`，工作流会唤醒服务并执行真实 HTTP 主链路测试。
+4. 仓库变量 `PUBLIC_API_BASE_URL` 保存公网地址；`Remote API Smoke` 每周自动巡检，
+   也可以在 GitHub Actions 手动运行并用 `api_base_url` 临时覆盖目标地址。
 
 也可以直接从本地验证公网环境：
 
