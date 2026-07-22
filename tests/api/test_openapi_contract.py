@@ -17,7 +17,7 @@ EXPECTED_OPERATIONS = {
 EXPECTED_RESPONSE_CODES = {
     ("post", "/api/auth/register"): {"201", "409", "422"},
     ("post", "/api/auth/login"): {"200", "401", "422"},
-    ("post", "/api/orders"): {"201", "401", "404", "409", "422"},
+    ("post", "/api/orders"): {"200", "201", "401", "404", "409", "422"},
     ("get", "/api/orders/{order_id}"): {"200", "401", "403", "404"},
 }
 
@@ -80,3 +80,29 @@ def test_openapi_exposes_error_response_schema(client):
 
     assert set(error_schema["properties"]) >= {"code", "message"}
     assert set(error_schema["required"]) >= {"code", "message"}
+
+
+@allure.feature("OpenAPI Contract")
+@allure.story("Order idempotency")
+@allure.title("OpenAPI documents the order idempotency header and replay response")
+def test_openapi_documents_order_idempotency_contract(client):
+    schema = client.get("/openapi.json").json()
+    operation = schema["paths"]["/api/orders"]["post"]
+    idempotency_parameter = next(
+        parameter
+        for parameter in operation["parameters"]
+        if parameter["name"] == "Idempotency-Key"
+    )
+
+    assert idempotency_parameter["in"] == "header"
+    assert idempotency_parameter["required"] is False
+    string_schema = next(
+        item
+        for item in idempotency_parameter["schema"]["anyOf"]
+        if item["type"] == "string"
+    )
+    assert string_schema["minLength"] == 8
+    assert string_schema["maxLength"] == 64
+    assert string_schema["pattern"] == "^[A-Za-z0-9._:-]+$"
+    assert "Idempotency-Replayed" in operation["responses"]["200"]["headers"]
+    assert "Idempotency-Replayed" in operation["responses"]["201"]["headers"]

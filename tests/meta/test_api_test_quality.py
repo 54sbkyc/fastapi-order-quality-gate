@@ -9,7 +9,9 @@ def _api_test_functions() -> list[ast.FunctionDef]:
     for path in API_TEST_DIR.glob("test_*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         functions.extend(
-            node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name.startswith("test_")
         )
     return functions
 

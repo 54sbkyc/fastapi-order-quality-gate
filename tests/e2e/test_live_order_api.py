@@ -81,6 +81,53 @@ def test_live_order_lifecycle_over_http(live_api: OrderApiClient):
 
 
 @allure.feature("Live API E2E")
+@allure.story("Order idempotency")
+@allure.title("Running service prevents duplicate orders when a client retries over HTTP")
+@pytest.mark.e2e
+@pytest.mark.regression
+def test_live_api_prevents_duplicate_order_retry(live_api: OrderApiClient):
+    token = _register_and_login(live_api, "e2e-idempotency")
+    products = [
+        ProductResponse.model_validate(item) for item in live_api.list_products().json()
+    ]
+    product = next((item for item in products if item.is_active and item.stock > 0), None)
+    assert product is not None, "测试环境没有可下单的在售库存"
+    idempotency_key = f"e2e-order-{uuid4().hex}"
+
+    first_response = live_api.create_order(
+        token,
+        product.id,
+        1,
+        idempotency_key=idempotency_key,
+    )
+    assert first_response.status_code == 201
+    first_order = OrderResponse.model_validate(first_response.json())
+    try:
+        replay_response = live_api.create_order(
+            token,
+            product.id,
+            1,
+            idempotency_key=idempotency_key,
+        )
+        assert replay_response.status_code == 200
+        assert replay_response.headers["Idempotency-Replayed"] == "true"
+        assert OrderResponse.model_validate(replay_response.json()).id == first_order.id
+
+        orders = [
+            OrderResponse.model_validate(item) for item in live_api.list_orders(token).json()
+        ]
+        assert [order.id for order in orders] == [first_order.id]
+
+        current_product = ProductResponse.model_validate(
+            live_api.get_product(product.id).json()
+        )
+        assert current_product.stock == product.stock - 1
+    finally:
+        cleanup_response = live_api.cancel_order(token, first_order.id)
+        assert cleanup_response.status_code == 200
+
+
+@allure.feature("Live API E2E")
 @allure.story("Authentication")
 @allure.title("Running service rejects an invalid bearer token")
 @pytest.mark.e2e

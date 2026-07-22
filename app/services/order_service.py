@@ -1,5 +1,8 @@
+from dataclasses import dataclass
+
 from fastapi import status
 from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessException
@@ -9,9 +12,16 @@ from app.models.order import (
     ORDER_STATUS_PAID,
     Order,
 )
+from app.models.order_idempotency import OrderIdempotencyRecord
 from app.models.product import Product
 from app.models.user import User
 from app.schemas.order import OrderCreate
+
+
+@dataclass(frozen=True)
+class OrderCreationResult:
+    order: Order
+    replayed: bool
 
 
 def list_user_orders(db: Session, user: User) -> list[Order]:
@@ -31,7 +41,53 @@ def get_user_order(db: Session, user: User, order_id: int) -> Order:
     return order
 
 
-def create_order(db: Session, user: User, payload: OrderCreate) -> Order:
+def _get_idempotency_record(
+    db: Session,
+    user_id: int,
+    idempotency_key: str,
+) -> OrderIdempotencyRecord | None:
+    return db.scalar(
+        select(OrderIdempotencyRecord).where(
+            OrderIdempotencyRecord.user_id == user_id,
+            OrderIdempotencyRecord.idempotency_key == idempotency_key,
+        )
+    )
+
+
+def _resolve_idempotent_replay(
+    db: Session,
+    record: OrderIdempotencyRecord,
+    payload: OrderCreate,
+) -> OrderCreationResult:
+    if record.product_id != payload.product_id or record.quantity != payload.quantity:
+        raise BusinessException(
+            "IDEMPOTENCY_KEY_CONFLICT",
+            "同一个 Idempotency-Key 不能用于不同的下单参数",
+            status.HTTP_409_CONFLICT,
+        )
+
+    order = db.get(Order, record.order_id)
+    if order is None:
+        raise BusinessException(
+            "IDEMPOTENCY_RECORD_INVALID",
+            "幂等记录关联的订单不存在",
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+    return OrderCreationResult(order=order, replayed=True)
+
+
+def create_order_with_idempotency(
+    db: Session,
+    user: User,
+    payload: OrderCreate,
+    idempotency_key: str | None,
+) -> OrderCreationResult:
+    user_id = user.id
+    if idempotency_key is not None:
+        existing_record = _get_idempotency_record(db, user_id, idempotency_key)
+        if existing_record is not None:
+            return _resolve_idempotent_replay(db, existing_record, payload)
+
     product = db.get(Product, payload.product_id)
     if product is None:
         raise BusinessException("PRODUCT_NOT_FOUND", "商品不存在", status.HTTP_404_NOT_FOUND)
@@ -54,16 +110,40 @@ def create_order(db: Session, user: User, payload: OrderCreate) -> Order:
 
     db.refresh(product)
     order = Order(
-        user_id=user.id,
+        user_id=user_id,
         product_id=product.id,
         quantity=payload.quantity,
         total_amount=product.price * payload.quantity,
         status=ORDER_STATUS_CREATED,
     )
-    db.add(order)
-    db.commit()
+    try:
+        db.add(order)
+        db.flush()
+        if idempotency_key is not None:
+            db.add(
+                OrderIdempotencyRecord(
+                    user_id=user_id,
+                    idempotency_key=idempotency_key,
+                    order_id=order.id,
+                    product_id=payload.product_id,
+                    quantity=payload.quantity,
+                )
+            )
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        if idempotency_key is not None:
+            existing_record = _get_idempotency_record(db, user_id, idempotency_key)
+            if existing_record is not None:
+                return _resolve_idempotent_replay(db, existing_record, payload)
+        raise
+
     db.refresh(order)
-    return order
+    return OrderCreationResult(order=order, replayed=False)
+
+
+def create_order(db: Session, user: User, payload: OrderCreate) -> Order:
+    return create_order_with_idempotency(db, user, payload, None).order
 
 
 def pay_order(db: Session, user: User, order_id: int) -> Order:

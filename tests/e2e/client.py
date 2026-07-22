@@ -44,14 +44,17 @@ class OrderApiClient:
         *,
         token: str | None = None,
         json_body: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> httpx.Response:
-        headers = {"Authorization": f"Bearer {token}"} if token else {}
+        request_headers = dict(headers or {})
+        if token:
+            request_headers["Authorization"] = f"Bearer {token}"
         started_at = perf_counter()
         try:
             response = self._client.request(
                 method,
                 path,
-                headers=headers,
+                headers=request_headers,
                 json=json_body,
             )
         except httpx.RequestError as exc:
@@ -107,12 +110,21 @@ class OrderApiClient:
     def get_product(self, product_id: int) -> httpx.Response:
         return self.request("GET", f"/api/products/{product_id}")
 
-    def create_order(self, token: str, product_id: int, quantity: int) -> httpx.Response:
+    def create_order(
+        self,
+        token: str,
+        product_id: int,
+        quantity: int,
+        *,
+        idempotency_key: str | None = None,
+    ) -> httpx.Response:
+        headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
         return self.request(
             "POST",
             "/api/orders",
             token=token,
             json_body={"product_id": product_id, "quantity": quantity},
+            headers=headers,
         )
 
     def list_orders(self, token: str) -> httpx.Response:
