@@ -12,10 +12,10 @@ Resume bullets:
 - 使用 fixture 管理测试用户、JWT token、商品种子数据和隔离数据库，保证用例可重复执行且互不依赖。
 - 封装 `httpx` API Client，支持环境地址、超时和代理配置，使用随机账号和 `finally` 清理订单；失败时向 Allure 附加脱敏请求、响应、状态码与耗时。
 - 通过参数化思路覆盖正常、异常和状态流转场景，并结合 Pydantic 响应结构校验与 SQLAlchemy 数据库断言验证接口真实落库结果。
-- 集成 Allure、`coverage.xml` 与 GitHub Actions 质量门禁，自动执行 55 条集成测试、4 条真实 HTTP 验收、meta 检查、前端构建和 Playwright 冒烟，核心链路失败或覆盖率低于 80% 时阻断流水线。
+- 集成 Allure、`coverage.xml` 与 GitHub Actions 质量门禁，自动执行 57 条集成测试、4 条真实 HTTP 验收、meta 检查、前端构建和 Playwright 冒烟，核心链路失败或覆盖率低于 80% 时阻断流水线。
 - 围绕客户端超时重试设计下单幂等测试，覆盖相同请求重放、参数冲突、用户隔离和唯一键竞争回滚，验证订单只创建一次且库存只扣减一次。
 - 将主分支成功的 API 与真实 HTTP Allure 产物合并后自动发布到 GitHub Pages，并限制报告生成器只处理可信主分支运行。
-- 使用受 GitHub Secret 保护的 Render Deploy Hook 建立测试后部署流程，仅在主分支 Quality Gate 成功后触发生产环境构建，并关闭平台原生自动部署避免重复发布。
+- 使用受 GitHub Secret 保护的 Render Deploy Hook 建立测试后部署流程，仅在主分支 Quality Gate 成功后触发构建；通过健康检查返回的 `RENDER_GIT_COMMIT` 核对目标提交真正上线后，再执行公网 smoke 并保留 Allure 证据。
 - 设计质量快照与报告摘要脚本，从本次 Allure 和覆盖率产物动态生成前端指标，并在 CI artifacts 中保留接口、覆盖率、构建和 UI 报告，避免历史结果累积或手工数字失真。
 - 接入 DeepSeek 本地测试建议生成脚本，根据 OpenAPI 契约生成候选测试点；AI 仅辅助设计，最终通过 Pytest 用例进入确定性质量门禁。
 

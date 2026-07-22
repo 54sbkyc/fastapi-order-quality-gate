@@ -75,8 +75,14 @@ def test_render_deploy_hook_runs_only_after_trusted_main_gate():
     assert "github.event.workflow_run.event == 'push'" in deploy_workflow
     assert "github.event.workflow_run.head_branch == 'main'" in deploy_workflow
     assert "secrets.RENDER_DEPLOY_HOOK_URL" in deploy_workflow
+    assert "vars.PUBLIC_API_BASE_URL" in deploy_workflow
+    assert "github.event.workflow_run.head_sha || github.sha" in deploy_workflow
     assert "--request POST" in deploy_workflow
-    assert "actions/checkout" not in deploy_workflow
+    assert 'running_commit" == "$EXPECTED_COMMIT' in deploy_workflow
+    assert "actions/checkout@v6" in deploy_workflow
+    assert "ref: ${{ env.EXPECTED_COMMIT }}" in deploy_workflow
+    assert "python -m pytest tests/e2e -m smoke" in deploy_workflow
+    assert "actions/upload-artifact@v7" in deploy_workflow
 
 
 def test_containerized_app_serves_the_built_frontend():

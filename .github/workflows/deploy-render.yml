@@ -6,7 +6,8 @@ on:
     workflows: ["Quality Gate"]
     types: [completed]
 
-permissions: {}
+permissions:
+  contents: read
 
 concurrency:
   group: render-production-deploy
@@ -20,18 +21,37 @@ jobs:
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
+    env:
+      EXPECTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+      API_BASE_URL: ${{ vars.PUBLIC_API_BASE_URL }}
+      API_TIMEOUT_SECONDS: "20"
+      API_TRUST_ENV: "false"
     steps:
+      - name: Validate deployment target
+        shell: bash
+        run: |
+          if [[ -z "$API_BASE_URL" || "$API_BASE_URL" != https://* ]]; then
+            echo "::error::PUBLIC_API_BASE_URL must be configured with an HTTPS URL"
+            exit 1
+          fi
+          if [[ ! "$EXPECTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Expected commit is not a full Git SHA"
+            exit 1
+          fi
+
       - name: Trigger Render production deploy
+        id: trigger
         env:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        shell: bash
         run: |
           if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
             echo "::error::RENDER_DEPLOY_HOOK_URL repository secret is not configured"
             exit 1
           fi
 
-          curl \
+          response="$(curl \
             --fail-with-body \
             --show-error \
             --silent \
@@ -40,4 +60,60 @@ jobs:
             --connect-timeout 10 \
             --max-time 30 \
             --request POST \
-            "$RENDER_DEPLOY_HOOK_URL"
+            "$RENDER_DEPLOY_HOOK_URL")"
+          deploy_id="$(jq -er '.deploy.id' <<< "$response")"
+          echo "Render accepted deploy ${deploy_id} for ${EXPECTED_COMMIT}"
+          echo "deploy_id=${deploy_id}" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for the tested commit to become live
+        shell: bash
+        run: |
+          health_url="${API_BASE_URL%/}/api/health"
+          for attempt in {1..120}; do
+            response="$(curl \
+              --fail \
+              --silent \
+              --show-error \
+              --connect-timeout 10 \
+              --max-time 20 \
+              "$health_url" 2>/dev/null || true)"
+            running_commit="$(jq -r '.commit // empty' <<< "$response" 2>/dev/null || true)"
+
+            if [[ "$running_commit" == "$EXPECTED_COMMIT" ]]; then
+              echo "Verified live commit ${EXPECTED_COMMIT}"
+              exit 0
+            fi
+
+            echo "Waiting for deploy ${{ steps.trigger.outputs.deploy_id }} (${attempt}/120)"
+            sleep 5
+          done
+
+          echo "::error::Render did not expose commit ${EXPECTED_COMMIT} within 10 minutes"
+          exit 1
+
+      - name: Checkout the tested main commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install smoke-test dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Run post-deploy API smoke test
+        run: >
+          python -m pytest tests/e2e -m smoke
+          --alluredir=allure-deploy-results
+
+      - name: Upload post-deploy evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: render-post-deploy-smoke-${{ github.run_id }}
+          path: allure-deploy-results
+          if-no-files-found: warn
+          retention-days: 14
